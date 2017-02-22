@@ -1,0 +1,23 @@
+body {
+  padding: 20px;
+}
+fieldset {
+  border-width: 1px 0 1px 0;
+  margin: 0 0 10px 0;
+}
+fieldset legend {
+  font-weight:bold;
+  font-size: larger;
+}
+fieldset label {
+  display: block;
+  border-bottom: dotted gray 1px;
+  line-height:28px;
+}
+fieldset div.field {
+  float:right;
+}
+div#status {
+  display: inline-block;
+  padding-left: 15px;
+}
