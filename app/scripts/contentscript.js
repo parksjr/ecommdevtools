@@ -60,15 +60,3 @@ var getActiveElement = function(document){
 
 //app start
 app.init();
-
-// chrome.extension.onMessage.addListener(function (message, sender, callback) {
-//     if (message.payload) {
-//         var elm = getActiveElement(document);
-//         var val = message.payload;
-//         if (elm) {
-//             elm.value = val;
-//         }
-//         console.log("copy this: ", val);
-//         copyText(val);
-//     }
-// });
