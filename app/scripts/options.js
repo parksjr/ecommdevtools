@@ -1,30 +1,43 @@
 'use strict';
+var console = chrome.extension.getBackgroundPage().console;
 
-// Saves options to chrome.storage.sync.
-function save_options() {
-  var gateway = document.getElementById('gateways').value;
-  chrome.storage.sync.set({
-    paymentProvider: gateway
-  }, function() {
-    // Update status to let user know options were saved.
-    var status = document.getElementById('status');
-    status.textContent = 'Options saved.';
+var options = {
+  init: function() {
+    var $selGateways = document.getElementById('gateways');
+    var $btnSave = document.getElementById('save');
+
+    this.getSelectedGateway(function(response) {
+      if (response != "")
+        $selGateways.value = response;
+    });
+    var flashStatus = function(message, failure) {
+      options.flashStatus(message, failure);
+    };
+    $btnSave.addEventListener('click', function(e) {
+      var selectedValue = $selGateways.value;
+      chrome.runtime.sendMessage({fn: "setGateway", gateway: selectedValue});
+      flashStatus("Settings have been saved..");
+    });
+  },
+  flashStatus: function(message, failure) {
+    var $divStatus = document.getElementById('status');
+    $divStatus.textContent = message;
+    if (failure) {
+      $divStatus.className = "status-failure";
+    }
+    else {
+      $divStatus.className = "status-success";
+    }
     setTimeout(function() {
-      status.textContent = '';
-    }, 750);
-  });
-}
+      $divStatus.textContent = '';
+    }, 1000);
+  },
+  getSelectedGateway: function(callback) {
+    chrome.runtime.sendMessage({fn: "getGateway"}, callback);
+  }
+};
 
-// Restores select box and checkbox state using the preferences
-// stored in chrome.storage.
-function restore_options() {
-  // Use default value color = 'red' and likesColor = true.
-  chrome.storage.sync.get({
-    paymentProvider: 'authnet'
-  }, function(items) {
-    document.getElementById('gateways').value = items.paymentProvider;
-  });
-}
-document.addEventListener('DOMContentLoaded', restore_options);
-document.getElementById('save').addEventListener('click',
-    save_options);
+//options start
+document.addEventListener("DOMContentLoaded", function() {
+  options.init();
+});
