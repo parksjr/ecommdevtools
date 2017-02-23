@@ -23,4 +23,8 @@ Install the unpacked extension to chrome by the following steps:
 
 Alternatively, you can drag and drop the "ecommdevtools/app" directory where your extension files live onto chrome://extensions in your browser to load it.
 
-If the extension is valid, it'll be loaded up and active right away! If it's invalid, an error message will be displayed at the top of the page. Correct the error, and try again.
+For more information about chrome extensions, visit: [Google Chrome Extension Development](http://developer.chrome.com/extensions/devguide.html)
+
+## License
+
+[BSD license](http://opensource.org/licenses/bsd-license.php)
