@@ -38,6 +38,7 @@ var background = {
       ]
     }
   },
+  addresses: {},
   getGatewayTestCards: function(gateway) {
     if (!(gateway in this.paymentGateways)) {
       gateway = "authnet";
@@ -45,6 +46,7 @@ var background = {
     return this.paymentGateways[gateway].test_cards;
   },
   init: function() {
+    this.loadAddresses();
     //  listen for any messages and route to functions
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       if (request.fn in background) {
@@ -79,19 +81,6 @@ var background = {
   //  context menu functions
   updateContexts: function() {
     var gateway = this.selectedGateway;
-    var contexts = this.contexts;
-    var createContextItem = function(title, id, contexts, parentId, callback, type) {
-      return background.createContextItem(title, id, contexts, parentId, callback, type);
-    };
-    var createSeparatorItem = function(parentId, contexts) {
-      return background.createSeparatorItem(parentId, contexts);
-    };
-    var getGatewayTestCards = function(gateway) {
-      return background.getGatewayTestCards(gateway);
-    };
-    var openOptionsPage = function() {
-      background.openOptionsPage();
-    };
     function onClickSendMessage(info, tab) {
       console.log("onClickSendMessage", tab);
       chrome.tabs.query({
@@ -100,49 +89,56 @@ var background = {
       }, function (tabs) {
         var infoId = info.menuItemId.split("---")[0];
         var payload = info.menuItemId.split("---")[1];
-        console.log("editable", info.editable);
+        console.log("editable", info.editable, info);
         chrome.tabs.sendMessage(tabs[0].id, {
           fn: info.editable ? "insertEditableText" : "copyTextToClipBoard",
           "payload": payload
         }, function(response) {
-          console.log(response);
+          console.log("response from app", response);
         });
       });
     }
     var setContextMenus = function() {
-      for (var i = 0; i < contexts.length; i++) {
-        var context = contexts[i];
-        console.log("context", context);
-        var id = createContextItem("Ecomm Dev Tools", "cards-context-"+context, [context]);
+      for (var i = 0; i < background.contexts.length; i++) {
+        var context = background.contexts[i];
+        var id = background.createContextItem("Ecomm Dev Tools", "cards-context-"+context, [context]);
         
         //
-        var cardsParentId = createContextItem("Test Credit Cards ("+gateway+")", "parent-"+context, [context], id);
-        var addressParentId = createContextItem("Random Address", "address-context-"+context, [context], id);
+        var cardsParentId = background.createContextItem("Test Credit Cards ("+gateway+")", "parent-"+context, [context], id);
+        var addressParentId = background.createContextItem("Random Address", "address-context-"+context, [context], id);
 
         //  add authnet test cards list items
-        var testCards = getGatewayTestCards(gateway);
+        var testCards = background.getGatewayTestCards(gateway);
         for (var n = 0; n < testCards.length; n++) {
           var cardNum = testCards[n].number;
           var cardTitle = testCards[n].name + ": " + cardNum;
           var itemId = "card---"+cardNum;
-          createContextItem(cardTitle, itemId, [context], cardsParentId, onClickSendMessage);
+          background.createContextItem(cardTitle, itemId, [context], cardsParentId, onClickSendMessage);
         }
-        createSeparatorItem(cardsParentId, [context]);
-        createContextItem("Change payment gateway provider...", "opensettings---payment---", [context], cardsParentId, function() {openOptionsPage();});
+        background.createSeparatorItem(cardsParentId, [context]);
+        background.createContextItem("Change payment gateway provider...", "opensettings---payment---", [context], cardsParentId, function() {background.openOptionsPage();});
 
-        continue;
         //  get random address
-        var addressLine = "address---23005 S Hootycreek Rd---";
-        var city = "address---Claremore---";
-        var province = "address---OK---";
-        var zip = "address---74019---";
+        var ridx = Math.floor(Math.random() * 99);
+        var randomAddress = background.addresses.addresses[ridx];
+        var addressLine = "address---" + randomAddress.line1 + "---";
+        var city = "address---" + randomAddress.city + "---";
+        var province = "address---" + randomAddress.state + "---";
+        var zip = "address---" + randomAddress.zip + "---";
         //  add it as list items
-        createContextItem("Address Line: " + addressLine, addressLine, [context], addressParentId);
-        createContextItem("City: " + city, city, [context], addressParentId);
-        createContextItem("State/Province: " + province, province, [context], addressParentId);
-        createContextItem("Zip: " + zip, zip, [context], addressParentId);
-        createSeparatorItem(addressParentId, [context]);
-        createContextItem("Address settings...", "opensettings---country---", [context], addressParentId, function() {openOptionsPage();});
+        background.createContextItem("Address Line: " + addressLine, addressLine, [context], addressParentId, onClickSendMessage);
+        background.createContextItem("City: " + city, city, [context], addressParentId, onClickSendMessage);
+        background.createContextItem("State/Province: " + province, province, [context], addressParentId, onClickSendMessage);
+        background.createContextItem("Zip: " + zip, zip, [context], addressParentId, onClickSendMessage);
+        
+        background.createSeparatorItem(addressParentId, [context]);
+        background.createContextItem("Generate a new random address..", "generateaddress---", [context], addressParentId, function() {
+          background.updateContexts();
+        });
+        background.createSeparatorItem(addressParentId, [context]);
+        background.createContextItem("Address settings...", "opensettings---country---", [context], addressParentId, function() {
+          background.openOptionsPage();
+        });
       }
     }
     //  remove all items before updating
@@ -168,6 +164,16 @@ var background = {
       ctx.onclick = callback;
     ctx.type = type ? type : "normal";
     return chrome.contextMenus.create(ctx);
+  },
+  loadAddresses: function() {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        background.addresses = JSON.parse(xhr.responseText);
+      }
+    };
+    xhr.open("GET", chrome.extension.getURL("/data/addresses.json"), true);
+    xhr.send();
   }
 };
 
